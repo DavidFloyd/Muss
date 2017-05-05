@@ -1,0 +1,22 @@
+spring:
+  profiles.active: default
+---
+muss:
+  key: Vml4sPtxOzA2s1a71zYn8xI29k0Y4wAG
+spring:
+  profiles: default
+spring.datasource:
+  driverClassName: org.h2.Driver
+  url: jdbc:h2:file:./DB;AUTO_SERVER=TRUE;DB_CLOSE_ON_EXIT=TRUE;MV_STORE=FALSE
+  schema:
+  data:
+spring.thymeleaf.cache: false
+spring.jpa.hibernate.ddl-auto: update
+---
+spring:
+  profiles: test
+spring.datasource:
+  driverClassName: org.h2.Driver
+  url: jdbc:h2:mem:sampletest;MODE=MySQL
+  schema:
+  data: data.sql

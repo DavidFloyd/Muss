@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity3"
+      th:include="layout :: page">
+<!--/*@thymesVar id="object" type="ie.cit.adf.muss.domain.ChObject"*/-->
+<!--/*@thymesVar id="user" type="ie.cit.adf.muss.domain.User"*/-->
+<!--/*@thymesVar id="tagForm" type="ie.cit.adf.muss.validation.TagForm"*/-->
+<!--/*@thymesVar id="reviewForm" type="ie.cit.adf.muss.validation.ReviewForm"*/-->
+<!--/*@thymesVar id="isReviewedByUser" type="java.lang.Boolean"*/-->
+<!--/*@thymesVar id="time" type="java.lang.Long"*/-->
+<!--/*@thymesVar id="HMAC" type="java.lang.String"*/-->
+
+<body>
+
+<div th:fragment="content">
+
+    <h1><a th:href="@{/gallery}"><i class="fa fa-arrow-circle-left"></i></a> <span
+            th:text="${object.title}">[Title]</span></h1>
+
+    <a class="twitter-share-button" th:href="'https://twitter.com/intent/tweet?text='+${object.title}">Tweet</a>
+
+    <div id="gallery">
+        <img id="gallery-main" th:src="${object.images.get(0).sizes.get(0).url}"/>
+
+        <div id="gallery-thumbnails">
+            <a class="gallery-thumbnail"
+               th:each="image : ${object.images}"
+               th:href="|javascript:changeImage('${image.sizes.get(0).url}')|"
+               th:style="|background-image:url(${image.sizes.get(0).url})|">
+            </a>
+        </div>
+    </div>
+
+    <h2>Description</h2>
+    <table id="description">
+        <tr>
+            <td><strong>Medium</strong></td>
+            <td th:text="${object.medium}"></td>
+        </tr>
+        <tr>
+            <td><strong>Date</strong></td>
+            <td th:text="${object.date}"></td>
+        </tr>
+        <tr>
+            <td><strong>Credit line</strong></td>
+            <td th:text="${object.creditLine}"></td>
+        </tr>
+        <tr>
+            <td><strong>Description</strong></td>
+            <td th:text="${object.description}"></td>
+        </tr>
+        <tr>
+            <td><strong>Gallery text</strong></td>
+            <td th:text="${object.galleryText}"></td>
+        </tr>
+    </table>
+
+	<h2>Participations</h2>
+	<ul>
+		<li th:each="participation : ${object.participations}">
+			<a th:href="${participation.participant.url}" th:text="${participation.participant.name}"></a>
+			<span> as </span>
+			<a th:href="${participation.role.url}" th:text="${participation.role.name}"></a>
+		</li>
+	</ul>
+
+    <!-- TAGS -->
+    <h2>Tags</h2>
+
+    <div>
+
+        <!-- List of tags -->
+        <span id="tags">Loading...</span>
+
+        <!-- Tag form -->
+        <form sec:authorize="isAuthenticated()" method="post" id="tagForm">
+            <button id="showTagFormWrapper" type="submit" class="btn btn-primary">+</button>
+            <span id="tagFormWrapper" class="no-break no-displayed">
+                <input type="text" id="tag" placeholder="New tag" class="form-control"/>
+                <button type="submit" class="btn btn-primary">Add Tag</button>
+            </span>
+        </form>
+    </div>
+    <span sec:authorize="isAnonymous()"><a th:href="@{/login}">Login</a> to add a tag!</span>
+
+
+    <!-- REVIEWS -->
+    <h2>Likes</h2>
+
+    <div>
+        <span id="objectLikes">Loading...</span>
+        <button sec:authorize="isAuthenticated()" id="likeObjectButton" type="submit"
+                class="btn btn-danger no-displayed"><i class="fa fa-heart"></i>
+        </button>
+        <button sec:authorize="isAuthenticated()" id="unlikeObjectButton" type="submit"
+                class="btn btn-disabled no-displayed"><i class="fa fa-thumbs-down"></i>
+        </button>
+    </div>
+    <p sec:authorize="isAnonymous()"><a th:href="@{/login}">Login</a> to like the object!</p>
+
+
+    <!-- REVIEWS -->
+    <h2>Reviews</h2>
+
+    <!-- List of reviews -->
+    <div class="row">
+        <div class="col-sm-6" th:each="review : ${object.reviews}">
+            <div class="review panel panel-default" th:id="|review-${review.id}|">
+                <header class="panel-heading">
+                    <h3 class="panel-title" th:text="${review.title}"></h3>
+                    <span class="rated">
+                        <span th:each="i : ${#numbers.sequence( 1, review.rating)}">☆</span>
+                    </span>
+                    <span class="reviewer">by <span th:text="${review.user.name}"></span> (<a
+                            th:href="@{/user/profile/{username}(username=${review.user.username})}"
+                            th:text="|@${review.user.username}|"></a>)</span>
+                </header>
+                <div class="panel-body" th:text="${review.content}">
+                    Panel content
+                </div>
+                <footer class="panel-footer">
+                    <span>Loading...</span>
+                    <button sec:authorize="isAuthenticated()" th:id="|likeReview${review.id}Button|" type="submit"
+                            class="btn btn-danger no-displayed"><i class="fa fa-heart"></i>
+                    </button>
+                    <button sec:authorize="isAuthenticated()" th:id="|unlikeReview${review.id}Button|" type="submit"
+                            class="btn btn-disabled no-displayed"><i class="fa fa-thumbs-down"></i>
+                    </button>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add review -->
+    <h4>Add Review</h4>
+
+    <div th:if="${isReviewedByUser}">
+        <span>¡You have already reviewed this item!</span>
+    </div>
+    <span sec:authorize="isAnonymous()"><a th:href="@{/login}">Login</a> to add a review!</span>
+
+    <form th:unless="${isReviewedByUser}" sec:authorize="isAuthenticated()" th:object="${reviewForm}" method="post"
+          th:action="@{/gallery/{objectID}(objectID=${object.id})}">
+        <div class="row">
+            <div class="form-group col-sm-10">
+                <label for="review-title">Title</label>
+                <input th:field="*{title}" type="text" class="form-control" id="review-title" placeholder="Title"/>
+            </div>
+            <div class="form-group col-sm-2">
+                <label for="review-content">Rating</label>
+                <span class="rating">
+                    <span id="star-5">☆</span><span id="star-4">☆</span><span id="star-3">☆</span><span
+                        id="star-2">☆</span><span
+                        id="star-1">☆</span>
+                </span>
+                <input type="hidden" th:field="*{rating}" th:value="1"/>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="review-content">Message</label>
+            <textarea th:field="*{content}" class="form-control" id="review-content"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Post the review</button>
+    </form>
+
+    <!-- Javascript TODO: extract to its own file -->
+    <script sec:authorize="isAuthenticated()" th:inline="javascript">
+        /*<![CDATA[*/
+        var userID = [[${user.id}]];
+        var username = [[${user.username}]];
+        var time = [[${time}]];
+        var HMAC = [[${HMAC}]];
+        /*]]>*/
+    </script>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+
+        if (typeof userID === 'undefined') {
+            var userID = -1;
+            var username = '';
+        }
+
+        // Current object ID
+        var objectID = [[${object.id}]];
+
+        /*]]>*/
+    </script>
+    <script th:src="@{/js/object.js}"></script>
+    <script>
+        /*<![CDATA[*/
+
+        /* TWITTER */
+        !function (d, s, id) {
+            var js, fjs = d.getElementsByTagName(s)[0], p = /^http:/.test(d.location) ? 'http' : 'https';
+            if (!d.getElementById(id)) {
+                js = d.createElement(s);
+                js.id = id;
+                js.src = p + '://platform.twitter.com/widgets.js';
+                fjs.parentNode.insertBefore(js, fjs);
+            }
+        }(document, 'script', 'twitter-wjs');
+        /*]]>*/
+    </script>
+</div>
+
+</body>
+</html>
